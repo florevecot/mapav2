@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Mapa interactivo de sitios OOEE" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Mapa OOEE</title>
+  <link rel="icon" type="image/png" href="./assets/logoOOEE.png" />
+
+  <!-- ================= LEAFLET (mapa, gratis, sin clave) ================= -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+
+  <!-- ================= TURF (cálculos geográficos: buffer, distancias) ================= -->
+  <script src="https://cdn.jsdelivr.net/npm/@turf/turf@7.1.0/turf.min.js"></script>
+
+  <!-- ================= SIGMA + GRAPHOLOGY (modo grafo) ================= -->
+  <script src="https://cdn.jsdelivr.net/npm/graphology@0.25.4/dist/graphology.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sigma@2.4.0/build/sigma.min.js"></script>
+
+  <!-- ================= CSS ================= -->
+  <link rel="stylesheet" href="./css/style.css" />
+
+  <!-- ================= JS (el orden importa) ================= -->
+  <script src="./js/config.js" defer></script>
+  <script src="./js/ui.sidebar.js" defer></script>
+  <script src="./js/app.map.js" defer></script>
+  <script src="./js/capas.externas.js" defer></script>
+  <script src="./js/sigma.js" defer></script>
+  <script src="./js/graph.controller.js" defer></script>
+  <script src="./js/ui.sidebar.graph.js" defer></script>
+  <script src="./js/modeController.js" defer></script>
+</head>
+
+<body class="mode-map">
+<div class="app-container">
+
+  <div id="visibleSitesCounter" class="visible-sites-counter">Sitios visibles: 0</div>
+
+  <div id="viewDiv"></div>
+  <div id="graphDiv" class="hidden"></div>
+
+  <!-- Buscador del mapa -->
+  <div id="searchContainer">
+    <div class="search-wrapper">
+      <select id="searchType" aria-label="Tipo de búsqueda">
+        <option value="nemonico">Nemónicos</option>
+        <option value="direccion">Direcciones</option>
+      </select>
+      <input id="searchInput" type="text" placeholder="Buscar por nemónico o nombre" autocomplete="off" />
+    </div>
+    <div id="searchResults"></div>
+  </div>
+
+  <aside id="sidebar">
+    <button id="toggleSidebar" class="sidebar-toggle" title="Menú">☰</button>
+
+    <div class="sidebar-content">
+      <div class="sidebar-header">
+        <img src="./assets/logoOOEE.png" alt="WOM" />
+      </div>
+
+      <div class="sidebar-scroll">
+
+        <!-- ===== HERRAMIENTAS MAPA ===== -->
+        <div id="toolsMap">
+          <h3>Herramientas Mapa</h3>
+          <button id="toggleLayersPanel" class="sidebar-btn" title="Capas y estados">🔍 <span>Administrar Capas</span></button>
+          <button id="toggleNemonicoFilter" class="sidebar-btn" title="Filtrar nemónicos">📋 <span>Filtrar Nemónicos</span></button>
+          <button id="measurementBtn" class="sidebar-btn" title="Medir distancia">📏 <span>Medir</span></button>
+          <button id="toggleBasemapPanel" class="sidebar-btn" title="Mapa base">🗺️ <span>Cambiar Mapa Base</span></button>
+          <button id="btnLocate" class="sidebar-btn" title="Mi ubicación">📍 <span>Mi Ubicación</span></button>
+
+          <div class="upload-section">
+            <h3>Subir Capas Mapa</h3>
+            <input type="file" id="fileInput" accept=".json,application/json" />
+            <p class="upload-info">Arreglo JSON con campos "nombre", "latitud" y "longitud"</p>
+            <div id="uploadList" class="upload-list"></div>
+          </div>
+        </div>
+
+        <!-- ===== HERRAMIENTAS GRAFO ===== -->
+        <div id="toolsGraph" class="hidden">
+          <h3>Dependencias de Sitio</h3>
+          <input id="graphSearchInput" type="text" class="graph-search-input" placeholder="Buscar sitio..." autocomplete="off" />
+          <ul id="graphSearchResults" class="graph-search-results hidden"></ul>
+
+          <button id="btnDeps1" class="sidebar-btn hidden">🔗 <span>1 salto</span></button>
+          <button id="btnDeps2" class="sidebar-btn hidden">🔗 <span>2 saltos</span></button>
+          <button id="btnDeps3" class="sidebar-btn hidden">🔗 <span>3 saltos</span></button>
+          <button id="btnResetGraph" class="sidebar-btn">🌐 <span>Vista global</span></button>
+
+          <div id="graphInfoPanel" class="graph-info-panel">
+            <p class="muted">Selecciona un nodo…</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="mode-switch">
+          <button id="modeMap" class="mode-btn active" title="Mapa"><span>Mapa</span></button>
+          <button id="modeGraph" class="mode-btn" title="Grafo"><span>Grafo</span></button>
+        </div>
+        <footer>
+          Desarrollado por
+          <a href="https://www.neochocapic.dev/" target="_blank" rel="noreferrer">NEOCHOCAPIC</a>
+        </footer>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===== PANELES FLOTANTES ===== -->
+  <div id="ui-overlay">
+    <div id="layersPanel" class="panel">
+      <div class="panel-header">
+        <h3>Capas</h3>
+        <button id="closeLayersPanel" class="close-btn" title="Cerrar">×</button>
+      </div>
+      <div id="layersContent" class="panel-content"></div>
+    </div>
+
+    <div id="basemapPanel" class="panel">
+      <div class="panel-header">
+        <h3>Mapa base</h3>
+        <button id="closeBasemapPanel" class="close-btn" title="Cerrar">×</button>
+      </div>
+      <div id="basemapContent" class="panel-content"></div>
+    </div>
+
+    <div id="nemonicoFilterPanel" class="panel">
+      <div class="panel-header">
+        <h3>Filtrar Nemónicos</h3>
+        <button id="closeNemonicoFilter" class="close-btn" title="Cerrar">×</button>
+      </div>
+      <div class="panel-content">
+        <div class="filter-header">
+          <div class="filter-actions">
+            <button id="selectAllNemonicos" class="filter-action-btn">Seleccionar todos</button>
+            <button id="deselectAllNemonicos" class="filter-action-btn">Deseleccionar todos</button>
+          </div>
+          <button id="applyNemonicoFilter" class="filter-action-btn primary">Aplicar filtro</button>
+        </div>
+
+        <div class="nemonico-search">
+          <input id="searchNemonicos" type="text" placeholder="Buscar nemónico..." autocomplete="off" />
+          <button id="clearNemonicoSearch" class="nemonico-search-clear" type="button" title="Limpiar">✕</button>
+        </div>
+
+        <div id="nemonicoList" class="nemonico-list"></div>
+        <div id="filterStatus" class="filter-status">0 de 0 nemónicos seleccionados</div>
+      </div>
+    </div>
+  </div>
+
+  <div id="loadingIndicator" class="loading-indicator">
+    <div class="spinner"></div>
+    <span>Cargando datos...</span>
+  </div>
+
+</div>
+</body>
+</html>

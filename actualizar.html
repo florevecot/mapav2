@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Actualizar datos · Mapa OOEE</title>
+  <link rel="icon" type="image/png" href="./assets/logoOOEE.png" />
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+  <link rel="stylesheet" href="./css/actualizar.css" />
+  <script src="./js/actualizar.js" defer></script>
+</head>
+<body>
+  <header class="top">
+    <img src="./assets/logoOOEE.png" alt="" />
+    <div>
+      <h1>Actualizar base de datos</h1>
+      <p id="quien" class="muted">Verificando permisos…</p>
+    </div>
+    <a href="./" class="volver">← Volver al mapa</a>
+  </header>
+
+  <main>
+    <section class="card" id="paso1">
+      <h2><span class="n">1</span> Datos actuales</h2>
+      <p id="actual" class="muted">Cargando datos publicados…</p>
+    </section>
+
+    <section class="card" id="paso2">
+      <h2><span class="n">2</span> Sube el archivo nuevo</h2>
+      <p class="muted">Excel (.xlsx, .xls), CSV o JSON. La primera fila con la columna <b>Nemonico</b> se toma como encabezado.
+        Columnas obligatorias: <b>Nemonico</b>, <b>Lat</b>, <b>Long</b>, <b>Estado OOEE</b>.</p>
+      <label class="drop" id="drop">
+        <input type="file" id="archivo" accept=".xlsx,.xls,.xlsm,.csv,.json" />
+        <span>📄 Arrastra el archivo aquí o haz clic para elegirlo</span>
+      </label>
+      <div id="hojas" class="hidden">
+        <label>Hoja con el inventario <select id="hojaInventario"></select></label>
+        <label>Hoja con las conexiones (opcional) <select id="hojaConexiones"></select></label>
+      </div>
+    </section>
+
+    <section class="card hidden" id="paso3">
+      <h2><span class="n">3</span> Columnas que se publican</h2>
+      <p class="muted">Lo que desmarques <b>no se sube</b> al sitio. Por seguridad, las columnas con datos personales o de clientes vienen desmarcadas. Tu selección se recuerda.</p>
+      <div class="acciones-mini">
+        <button type="button" id="colTodas">Marcar todas</button>
+        <button type="button" id="colSensibles">Desmarcar sensibles</button>
+      </div>
+      <div id="columnas" class="columnas"></div>
+    </section>
+
+    <section class="card hidden" id="paso4">
+      <h2><span class="n">4</span> Conexiones entre sitios (dependencias)</h2>
+      <div id="opcionesGrafo" class="opciones"></div>
+      <p id="resumenGrafo" class="muted"></p>
+    </section>
+
+    <section class="card hidden" id="paso5">
+      <h2><span class="n">5</span> Revisión</h2>
+      <div id="validacion"></div>
+      <div id="diferencias"></div>
+    </section>
+
+    <section class="card hidden" id="paso6">
+      <h2><span class="n">6</span> Publicar</h2>
+      <label class="campo">Descripción del cambio
+        <input id="mensaje" type="text" maxlength="150" placeholder="Ej.: Actualización semanal OOEE" />
+      </label>
+      <label id="confirmarBajaBox" class="confirmar hidden">
+        <input type="checkbox" id="confirmarBaja" /> Entiendo que el archivo nuevo tiene bastantes menos sitios que el actual y quiero publicarlo igual.
+      </label>
+      <div class="botones">
+        <button type="button" id="publicar" class="primario" disabled>🚀 Publicar en el mapa</button>
+        <button type="button" id="descargar">⬇️ Descargar archivos (subida manual a GitHub)</button>
+      </div>
+      <p id="estadoPublicar" class="muted"></p>
+      <ol id="progreso" class="progreso"></ol>
+    </section>
+  </main>
+</body>
+</html>
